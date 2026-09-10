@@ -27,31 +27,37 @@ weread-mp-monitor 是一个面向微信公众号的静默增量监控工具。�
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                 宿主 / 自动化调度层 (Host)                   │
-│      (ChatGPT Automations / Claude Code / cron / launchd)    │
+│                 Host / Automation Scheduler                 │
+│      (ChatGPT Automations / Claude Code / cron / launchd)   │
 └──────────────────────────────┬──────────────────────────────┘
-                               │  CLI Arguments (--json)
+                               │ CLI Arguments (--json)
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              weread-mp-monitor 控制平面                      │
-│    (SKILL.md Agent 编排 / scripts/weread_monitor.py CLI)    │
+│              weread-mp-monitor Control Layer                │
+│    (SKILL.md Agent Guidance / scripts/weread_monitor.py)    │
 └──────────────┬──────────────────────────────┬───────────────┘
                │                              │
-     读取会话 (browser-cookie3)       原子写入 + flock 排他锁
+     Read Session (cookie3)          Atomic Write + flock
                ▼                              ▼
 ┌──────────────────────────────┐┌─────────────────────────────┐
-│       本地浏览器配置环境       ││        持久化状态存储        │
-│  (Chrome / Edge / Brave /    ││  (~/.weread_mp_monitor_     │
-│   Chromium 个人资料会话)      ││   state.json, 0600 权限)   │
+│    Local Browser Profile     ││      Persistent State       │
+│   (Chrome / Edge / Brave)    ││ (~/.weread_mp_monitor_state)│
 └──────────────┬───────────────┘└─────────────────────────────┘
                │
-      已鉴权 HTTPS 请求
+      Authenticated HTTPS
                ▼
-┌──────────────────────────────┐     公开 HTTPS 请求    ┌─────────────────────────────┐
-│       微信读书 Web 接口       │──────────────────────▶│     微信公众平台文章页面     │
-│ (获取已关注列表 / 文章元数据)  │     抓取文章正文      │ (mp.weixin.qq.com HTML/正文)│
-└──────────────────────────────┘                       └─────────────────────────────┘
+┌──────────────────────────────┐      Public HTTPS      ┌─────────────────────────────┐
+│     WeRead Web Endpoints     │───────────────────────▶│  WeChat Public Account Web  │
+│ (Followed Shelf / Articles)  │    Fetch Article Body  │ (mp.weixin.qq.com HTML/Text)│
+└──────────────────────────────┘                        └─────────────────────────────┘
 ```
+
+架构分层说明：
+- **调度层 (Host / Scheduler)**：ChatGPT Automations、Claude Code、cron 或 launchd 等定时唤醒与交付通知。
+- **控制平面 (Control Layer)**：由 `SKILL.md`（Agent 行为规范）与 `scripts/weread_monitor.py`（核心 CLI）统一管理。
+- **凭据解析 (Browser Profile)**：可选调用 `browser-cookie3` 从本地 Chromium 内核浏览器中安全读取会话，无需手动抓包。
+- **持久化状态 (Persistent State)**：状态落盘至 `~/.weread_mp_monitor_state.json`，由文件排他锁（`flock`）与原子写入提供并发安全保障。
+- **数据流转 (Data Access)**：通过微信读书 Web 接口获取已关注公众号与最新文章列表，按需直接拉取微信公众平台公开页面解析正文。
 
 ## 使用示例
 
