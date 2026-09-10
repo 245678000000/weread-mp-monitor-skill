@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeRead 公众号监控"
+  short_description: "监控微信读书已关注公众号的新文章，并配合定时任务只推送更新。"
+  brand_color: "#2F6BFF"
